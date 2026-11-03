@@ -10,14 +10,13 @@ from selenium.webdriver.support import expected_conditions as EC
 
 load_dotenv()
 
-# Cole aqui a Test URL que você copiou do nó Webhook do n8n
 N8N_WEBHOOK_URL = "http://localhost:5678/webhook-test/alerta-preco"
 
-# 1. EXTRACT
+
 def extrair_dados(url):
     print("[1] Extraindo dados com Selenium...")
     options = webdriver.ChromeOptions()
-    # options.add_argument('--headless') # Descomente quando quiser rodar sem abrir a janela
+    
     
     driver = webdriver.Chrome(options=options)
     driver.get(url)
@@ -35,14 +34,14 @@ def extrair_dados(url):
     finally:
         driver.quit()
 
-# 2. TRANSFORM
+
 def transformar_dados(titulo_bruto, preco_bruto):
     print("[2] Limpando e formatando dados...")
     titulo_limpo = titulo_bruto.strip()
     preco_limpo = re.sub(r'[^\d,]', '', preco_bruto).replace(',', '.')
     return titulo_limpo, float(preco_limpo)
 
-# 3. LOAD & CHECK
+
 def salvar_e_verificar(nome, preco_atual, url):
     print("[3] Consultando histórico no PostgreSQL e inserindo nova coleta...")
     conn = psycopg2.connect(
@@ -53,7 +52,7 @@ def salvar_e_verificar(nome, preco_atual, url):
     )
     cursor = conn.cursor()
     
-    # Busca o último preço registrado no banco antes desta execução
+   
     cursor.execute("""
         SELECT preco FROM historico_precos 
         WHERE produto_nome = %s 
@@ -63,7 +62,7 @@ def salvar_e_verificar(nome, preco_atual, url):
     resultado = cursor.fetchone()
     preco_antigo = float(resultado[0]) if resultado else preco_atual
     
-    # Salva a coleta atual
+    
     cursor.execute("""
         INSERT INTO historico_precos (produto_nome, preco, url)
         VALUES (%s, %s, %s)
@@ -75,11 +74,9 @@ def salvar_e_verificar(nome, preco_atual, url):
     
     return preco_antigo
 
-# 4. TRIGGER (WEBHOOK)
 def disparar_alerta_n8n(nome, preco_atual, preco_antigo, link, forcar_teste=True):
     print("[4] Analisando regra de negócio e enviando Webhook...")
     
-    # forcar_teste=True garante que o n8n receba os dados agora mesmo no seu primeiro teste
     if forcar_teste or preco_atual <= (preco_antigo * 0.85):
         print("🚨 Disparando requisição POST para o n8n...")
         
@@ -107,5 +104,5 @@ if __name__ == "__main__":
     nome, preco_atual = transformar_dados(titulo_sujo, preco_sujo)
     preco_antigo = salvar_e_verificar(nome, preco_atual, link)
     
-    # Dispara o alerta para o n8n
+
     disparar_alerta_n8n(nome, preco_atual, preco_antigo, link, forcar_teste=True)
