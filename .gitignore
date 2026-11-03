@@ -1,0 +1,5 @@
+.env
+*.log
+execucao.log
+__pycache__/
+.vscode/

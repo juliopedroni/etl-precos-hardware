@@ -1,0 +1,7 @@
+CREATE TABLE IF NOT EXISTS historico_precos (
+    id SERIAL PRIMARY KEY,
+    produto_nome VARCHAR(255) NOT NULL,
+    preco DECIMAL(10, 2) NOT NULL,
+    url VARCHAR(500) NOT NULL,
+    data_coleta TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
